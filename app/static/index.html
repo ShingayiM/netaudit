@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NetAudit</title>
+<style>
+:root{
+  --bg:#edeff2; --panel:#fff; --ink:#16222e; --muted:#5b6b7a; --line:#d5dbe2; --accent:#0b5f7a; --accent-ink:#fff;
+  --crit:#a61b1b; --high:#d4570e; --med:#c28f00; --low:#4a7c59; --info:#7b8794; --row:#f6f8fa;
+  --font:"Segoe UI Variable","Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",sans-serif;
+  --mono:ui-monospace,"Cascadia Mono",Consolas,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root{--bg:#10171e; --panel:#18222c; --ink:#e6ecf1; --muted:#93a3b2; --line:#2b3947; --accent:#4cb4d4; --accent-ink:#06222c;
+        --crit:#ff6b60; --high:#ff9a52; --med:#e8bb3a; --low:#6fbf8a; --info:#8fa0b0; --row:#1d2935}
+}
+*{box-sizing:border-box}
+html{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--font)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1280px;margin:0 auto;padding:0 20px 60px}
+header{display:flex;align-items:center;justify-content:space-between;padding:18px 0;gap:16px;flex-wrap:wrap}
+.brand{font-size:22px;font-weight:700;letter-spacing:-.02em}
+.brand small{font-weight:400;color:var(--muted);font-size:14px;margin-left:10px;letter-spacing:0}
+.env{font-size:13px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap}
+.env b{font-weight:600;color:var(--ink)}
+.ok{color:var(--low)} .bad{color:var(--crit)}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px}
+.run{padding:16px 18px;display:grid;grid-template-columns:minmax(220px,1.4fr) auto auto;gap:14px 18px;align-items:end}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+input[type=text],input[type=password],select{background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:9px 10px;min-width:0;color:var(--ink)}
+.profiles{display:flex;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.profiles button{background:var(--bg);border:0;padding:9px 14px;cursor:pointer;border-right:1px solid var(--line)}
+.profiles button:last-child{border-right:0}
+.profiles button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn{background:var(--accent);color:var(--accent-ink);border:0;border-radius:4px;padding:10px 20px;font-weight:600;cursor:pointer}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line);font-weight:500;padding:7px 12px}
+.run .auth{grid-column:1/-1;display:flex;gap:18px;flex-wrap:wrap;align-items:center;font-size:14px}
+.run .auth label{display:flex;gap:8px;align-items:center}
+details.adv summary{cursor:pointer;color:var(--muted);font-size:13px}
+details.adv{font-size:13px}
+details.adv .in{display:flex;gap:14px;margin-top:8px;flex-wrap:wrap;align-items:center}
+.hint{color:var(--muted);font-size:13px}
+.err{color:var(--crit);font-size:14px;grid-column:1/-1}
+
+.credbox{border-top:1px dashed var(--line);margin-top:4px;padding-top:12px}
+.credbox summary{cursor:pointer;color:var(--muted);font-size:13px;margin-bottom:8px}
+.credrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px;background:var(--bg);padding:8px;border-radius:4px}
+.credrow input,.credrow select{padding:7px 8px;font-size:13px}
+.credrow .cidr{width:150px}.credrow .user{width:110px}.credrow .pass{width:130px}
+.credrow .rm{color:var(--crit);background:none;border:0;cursor:pointer;font-size:18px;line-height:1;padding:0 4px}
+.diffbanner{display:flex;gap:18px;flex-wrap:wrap;padding:10px 18px;background:var(--bg);border:1px solid var(--line);border-radius:6px;margin-top:12px;font-size:14px}
+.diffbanner b{font-variant-numeric:tabular-nums}
+.crit-tag{font-size:11px;border-radius:3px;padding:1px 6px;margin-left:6px;vertical-align:1px}
+.crit-critical_asset{background:var(--crit);color:#fff}.crit-high{background:var(--high);color:#fff}.crit-low{background:var(--line);color:var(--muted)}
+
+.progress{margin-top:12px;padding:14px 18px}
+.bar{height:8px;background:var(--bg);border-radius:4px;overflow:hidden;margin:8px 0}
+.bar i{display:block;height:100%;background:var(--accent);transition:width .4s}
+.logtail{font:12px/1.5 var(--mono);color:var(--muted);white-space:pre-wrap;max-height:110px;overflow:auto}
+
+.hero{margin-top:18px;padding:18px 20px}
+.hero h1{font-size:20px;margin:0 0 2px;letter-spacing:-.01em}
+.hero .sub{color:var(--muted);font-size:14px;margin-bottom:14px}
+.strip{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:16px}
+.cell{width:26px;height:26px;border-radius:3px;border:0;cursor:pointer;padding:0;position:relative}
+.cell[aria-pressed=true]{outline:2px solid var(--ink);outline-offset:1px}
+.sevbar{display:flex;height:14px;border-radius:2px;overflow:hidden;background:var(--bg)}
+.sevbar span{display:block;height:100%}
+.legend{display:flex;gap:22px;margin-top:10px;flex-wrap:wrap}
+.legend button{background:none;border:0;padding:0;cursor:pointer;display:flex;align-items:baseline;gap:7px;color:var(--ink)}
+.legend b{font-size:24px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.legend span{font-size:13px;color:var(--muted)}
+.legend .sw{width:10px;height:10px;border-radius:2px;align-self:center}
+.c-critical{background:var(--crit)} .c-high{background:var(--high)} .c-medium{background:var(--med)} .c-low{background:var(--low)} .c-info{background:var(--info)} .c-none{background:var(--line)}
+
+.cats{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-top:14px}
+.cat{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 14px;text-align:left;cursor:pointer;color:var(--ink)}
+.cat[aria-pressed=true]{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.cat .n{font-size:26px;font-weight:700;letter-spacing:-.02em;line-height:1.2;font-variant-numeric:tabular-nums}
+.cat .t{font-size:14px}
+.cat .sevbar{height:5px;margin-top:8px}
+
+.tabs{display:flex;gap:2px;margin-top:22px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.tabs button{background:none;border:0;padding:10px 16px;cursor:pointer;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-1px}
+.tabs button[aria-selected=true]{color:var(--ink);font-weight:600;border-bottom-color:var(--accent)}
+.tabs .sp{flex:1}
+.toolbar{display:flex;gap:10px;margin:14px 0;flex-wrap:wrap;align-items:center}
+.toolbar input[type=text]{min-width:240px}
+.tablewrap{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:6px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-weight:600;padding:9px 12px;border-bottom:1px solid var(--line);color:var(--muted);white-space:nowrap;font-size:13px}
+td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tbody tr:last-child td{border-bottom:0}
+tbody tr.click{cursor:pointer} tbody tr.click:hover{background:var(--row)}
+tbody tr.click:focus-visible{outline-offset:-2px}
+.mono{font-family:var(--mono);font-size:13px}
+.pill{display:inline-block;padding:1px 9px;border-radius:10px;font-size:12px;font-weight:600;color:#fff;white-space:nowrap}
+.pill.medium{color:#2a2000}
+.tag{display:inline-block;font-size:12px;border:1px solid var(--line);border-radius:3px;padding:0 6px;margin:0 4px 2px 0;color:var(--muted);white-space:nowrap}
+.tag.kev{border-color:var(--crit);color:var(--crit);font-weight:600}
+.num{font-variant-numeric:tabular-nums;text-align:right}
+.minibars{display:flex;gap:3px}
+.minibars span{font-size:12px;min-width:20px;text-align:center;border-radius:3px;color:#fff;padding:0 4px}
+.empty{padding:50px 20px;text-align:center;color:var(--muted)}
+.empty b{display:block;color:var(--ink);font-size:17px;margin-bottom:4px}
+
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(560px,100%);background:var(--panel);border-left:1px solid var(--line);box-shadow:-8px 0 30px rgba(0,0,0,.18);padding:22px 24px;overflow:auto;transform:translateX(102%);transition:transform .2s;z-index:10}
+.drawer.open{transform:none}
+.drawer h2{font-size:18px;margin:10px 0 6px;line-height:1.3}
+.drawer h3{font-size:13px;color:var(--muted);margin:18px 0 4px;font-weight:600}
+.drawer p{margin:0 0 6px}
+.drawer pre{background:var(--bg);padding:10px;border-radius:4px;font:12px/1.5 var(--mono);white-space:pre-wrap;word-break:break-word;margin:0}
+.drawer a{color:var(--accent)}
+.close{float:right}
+@media (prefers-reduced-motion: reduce){.drawer,.bar i{transition:none}}
+@media (max-width:760px){.run{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">NetAudit<small>Network vulnerability audit</small></div>
+    <div class="env" id="env" aria-live="polite"></div>
+  </header>
+
+  <section class="panel run" aria-label="Run an audit">
+    <label class="f">Target range
+      <input type="text" id="target" placeholder="192.168.1.0/24" autocomplete="off" spellcheck="false">
+    </label>
+    <div class="f" style="gap:4px"><span style="font-size:13px;color:var(--muted)">Depth</span>
+      <div class="profiles" id="profiles" role="group" aria-label="Scan depth"></div></div>
+    <button class="btn" id="run">Run audit</button>
+    <div class="auth">
+      <label><input type="checkbox" id="auth"> I own this network or have written permission to audit it</label>
+      <details class="adv"><summary>Advanced</summary><div class="in">
+        <label class="f">NVD API key (faster CVE lookups)<input type="password" id="nvdkey" autocomplete="off"></label>
+        <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="skipcve"> Offline mode: skip CVE lookups</label>
+        <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="defcreds"> Test common default credentials (slow, tries known factory logins on SSH/FTP/Telnet/HTTP)</label>
+      </div></details>
+      <span class="hint" id="profhint"></span>
+    </div>
+    <div class="run" id="creds" style="grid-template-columns:1fr;padding:0;border:0;margin-top:4px"></div>
+    <div class="err" id="err" role="alert" hidden></div>
+  </section>
+
+  <section class="panel progress" id="progress" hidden aria-live="polite">
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:center">
+      <b id="pmsg">Starting</b><button class="btn ghost" id="cancel">Cancel audit</button></div>
+    <div class="bar"><i id="pbar" style="width:0"></i></div>
+    <div class="logtail" id="plog"></div>
+  </section>
+
+  <div id="results"></div>
+</div>
+
+<aside class="drawer" id="drawer" role="dialog" aria-modal="false" aria-label="Finding details" aria-hidden="true"></aside>
+
+<script>
+const SEVS=['critical','high','medium','low','info'];
+const SEVNAME={critical:'Critical',high:'High',medium:'Medium',low:'Low',info:'Info'};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const st={info:null,profile:'standard',scan:null,findings:[],hosts:[],attack:[],tab:'findings',f:{sev:'',cat:'',q:'',host:''},poll:null,creds:[],showDismissed:false};
+
+async function api(path,opt){
+  const r=await fetch(path,opt);
+  if(!r.ok){let m=r.statusText;try{m=(await r.json()).detail||m}catch(e){} throw new Error(m)}
+  return r.json();
+}
+
+/* ---------- setup ---------- */
+async function init(){
+  st.info=await api('/api/info');
+  $('#target').value=st.info.local_cidr;
+  const box=$('#profiles');
+  Object.keys(st.info.profiles).forEach(p=>{
+    const b=document.createElement('button');b.textContent=p[0].toUpperCase()+p.slice(1);b.dataset.p=p;
+    b.onclick=()=>setProfile(p);box.appendChild(b);
+  });
+  setProfile('standard');
+  renderCreds();
+  const i=st.info;
+  $('#env').innerHTML=
+    `<span>Nmap: <b class="${i.nmap?'ok':'bad'}">${i.nmap?esc(i.nmap_version||'installed').replace('Nmap version ','v'):'not found'}</b></span>`+
+    `<span>Privileges: <b class="${i.privileged?'ok':''}">${i.privileged?'administrator/root':'standard user (limited)'}</b></span>`;
+  if(!i.nmap) showErr('Nmap is not installed. Install it from nmap.org/download, then reload this page.');
+  const scans=await api('/api/scans');
+  const active=scans.find(s=>s.status==='running'||s.status==='queued');
+  if(active) watch(active.id); else if(scans.length) loadScan(scans[0].id); else renderEmpty();
+}
+function setProfile(p){
+  st.profile=p;
+  document.querySelectorAll('#profiles button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.p===p));
+  $('#profhint').textContent=st.info.profiles[p];
+}
+function showErr(m){const e=$('#err');e.textContent=m;e.hidden=!m}
+
+/* ---------- authenticated-scan credentials ---------- */
+function addCred(){st.creds.push({cidr:'',protocol:'ssh',username:'',password:'',saved_name:'',save_as:''});renderCreds()}
+function renderCreds(){
+  const saved=(st.info&&st.info.saved_credentials)||[];
+  const sshOk=!st.info||st.info.ssh_available, winrmOk=!st.info||st.info.winrm_available;
+  $('#creds').innerHTML=`<details class="credbox" ${st.creds.length?'open':''}><summary>Authenticated scanning (optional) &mdash; log in to devices for real patch levels, AV status and hardening checks</summary>
+    <div id="credrows"></div>
+    <button type="button" class="btn ghost" id="addcred">Add credential</button>
+    <p class="hint">Credentials are used only for this scan and are never written to disk unless you tick "save".
+    ${!sshOk?' SSH support is not installed on the server (pip install paramiko).':''}${!winrmOk?' WinRM support is not installed on the server (pip install pywinrm).':''}</p></details>`;
+  const rows=$('#credrows');
+  st.creds.forEach((c,i)=>{
+    const row=document.createElement('div');row.className='credrow';
+    row.innerHTML=`<input class="cidr" placeholder="10.0.0.0/24 or 10.0.0.5" value="${esc(c.cidr)}" data-k="cidr" aria-label="Range for this credential">
+    <select data-k="protocol" aria-label="Protocol"><option value="ssh" ${c.protocol==='ssh'?'selected':''}>SSH (Linux/macOS)</option><option value="winrm" ${c.protocol==='winrm'?'selected':''}>WinRM (Windows)</option></select>
+    <select data-k="saved_name" aria-label="Saved credential">
+      <option value="">Enter credential below</option>${saved.map(n=>`<option value="${esc(n)}" ${c.saved_name===n?'selected':''}>Saved: ${esc(n)}</option>`).join('')}
+    </select>
+    ${c.saved_name?'':`<input class="user" placeholder="username" value="${esc(c.username)}" data-k="username" autocomplete="off" aria-label="Username">
+    <input class="pass" type="password" placeholder="password" value="${esc(c.password)}" data-k="password" autocomplete="off" aria-label="Password">
+    <label style="font-size:12px;display:flex;gap:4px;align-items:center"><input type="checkbox" data-k="_save" ${c.save_as?'checked':''}> save as <input style="width:90px" placeholder="name" value="${esc(c.save_as)}" data-k="save_as"></label>`}
+    <button type="button" class="rm" title="Remove" aria-label="Remove this credential">&times;</button>`;
+    row.querySelectorAll('[data-k]').forEach(el=>el.onchange=el.oninput=()=>{
+      const k=el.dataset.k;
+      if(k==='_save'){}else c[k]=el.value;
+      if(k==='saved_name'||k==='protocol')renderCreds();
+    });
+    row.querySelector('.rm').onclick=()=>{st.creds.splice(i,1);renderCreds()};
+    rows.appendChild(row);
+  });
+  const add=$('#addcred');if(add)add.onclick=addCred;
+}
+
+/* ---------- run ---------- */
+$('#run').onclick=async()=>{
+  showErr('');
+  try{
+    for(const c of st.creds){
+      if(c.saved_name) continue;
+      if(!c.cidr||!c.username) throw new Error('Fill in the range and username for every credential, or remove the row.');
+      const box=document.querySelector(`#credrows`); // save-to-vault checkboxes
+    }
+    // save any rows marked "save"
+    for(const row of document.querySelectorAll('.credrow')){
+      const chk=row.querySelector('[data-k=_save]');
+      if(chk&&chk.checked){
+        const name=row.querySelector('[data-k=save_as]').value.trim();
+        const idx=[...row.parentElement.children].indexOf(row);
+        const c=st.creds[idx];
+        if(name&&c) await api('/api/credentials',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({name,protocol:c.protocol,username:c.username,password:c.password})});
+      }
+    }
+    const credentials=st.creds.map(c=>c.saved_name?{cidr:c.cidr,protocol:c.protocol,username:c.username||'x',saved_name:c.saved_name}
+      :{cidr:c.cidr,protocol:c.protocol,username:c.username,password:c.password});
+    const r=await api('/api/scans',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      target:$('#target').value,profile:st.profile,authorized:$('#auth').checked,
+      nvd_api_key:$('#nvdkey').value||null,skip_cve:$('#skipcve').checked,credentials,
+      test_default_credentials:$('#defcreds').checked})});
+    watch(r.id);
+  }catch(e){showErr(e.message)}
+};
+$('#cancel').onclick=async()=>{if(st.scan) await api(`/api/scans/${st.scan}/cancel`,{method:'POST'})};
+
+function watch(id){
+  st.scan=id;clearInterval(st.poll);
+  $('#progress').hidden=false;$('#run').disabled=true;
+  const tick=async()=>{
+    let s;try{s=await api('/api/scans/'+id)}catch(e){return}
+    $('#pmsg').textContent=s.message||s.status;
+    $('#pbar').style.width=Math.round((s.progress||0)*100)+'%';
+    $('#plog').textContent=s.log||'';$('#plog').scrollTop=1e6;
+    if(!['queued','running'].includes(s.status)){
+      clearInterval(st.poll);$('#run').disabled=false;
+      if(s.status==='done'){$('#progress').hidden=true;loadScan(id)}
+      else{$('#cancel').hidden=true;showErr(s.status==='error'?'Audit failed: '+s.message:'Audit cancelled.')}
+    }else $('#cancel').hidden=false;
+  };
+  tick();st.poll=setInterval(tick,1500);
+}
+
+/* ---------- load + render ---------- */
+async function loadScan(id){
+  st.scan=id;st.f={sev:'',cat:'',q:'',host:''};
+  const [scan,findings,hosts,attack]=await Promise.all([api('/api/scans/'+id),api(`/api/scans/${id}/findings`),
+    api(`/api/scans/${id}/hosts`),api(`/api/scans/${id}/attack`)]);
+  Object.assign(st,{findings,hosts,attack,meta:scan});
+  render();
+}
+function renderEmpty(){
+  $('#results').innerHTML=`<div class="panel empty" style="margin-top:18px"><b>No audit yet</b>Enter your network range, confirm you are authorized, and select Run audit.</div>`;
+}
+function countBy(list,key){return list.reduce((a,x)=>(a[x[key]]=(a[x[key]]||0)+1,a),{})}
+function sevbar(counts,total){
+  total=total||SEVS.reduce((a,s)=>a+(counts[s]||0),0)||1;
+  return `<div class="sevbar" role="img" aria-label="Severity distribution">`+SEVS.map(s=>counts[s]?`<span class="c-${s}" style="width:${counts[s]/total*100}%"></span>`:'').join('')+`</div>`;
+}
+function worst(c){return SEVS.find(s=>c&&c[s])||'none'}
+function pill(s){return `<span class="pill c-${esc(s)} ${esc(s)}">${esc(SEVNAME[s]||s)}</span>`}
+
+function render(){
+  const {findings,hosts,meta}=st;
+  const sevc=countBy(findings,'severity'),catc=countBy(findings,'category');
+  const kev=findings.filter(f=>f.kev).length;
+  const when=meta.finished?new Date(meta.finished*1000).toLocaleString():'';
+  const scored=findings.filter(f=>f.severity!=='info');
+  const sm=meta.summary||{};
+  let h=`<section class="panel hero">
+    <h1>${hosts.length} device${hosts.length==1?'':'s'} audited, ${scored.length} finding${scored.length==1?'':'s'}</h1>
+    <div class="sub">${esc(meta.target)}, ${esc(meta.profile)} scan, ${esc(when)}${kev?`, <b style="color:var(--crit)">${kev} actively exploited (CISA KEV)</b>`:''}
+    ${sm.authenticated_hosts?`, logged in to ${sm.authenticated_hosts} device${sm.authenticated_hosts==1?'':'s'}`:''}${sm.auth_errors?` (${sm.auth_errors} credential${sm.auth_errors==1?'':'s'} failed &mdash; see device log)`:''}</div>
+    ${sm.diff?`<div class="diffbanner">
+      ${sm.diff.new_devices.length?`<span>🆕 <b>${sm.diff.new_devices.length}</b> new device${sm.diff.new_devices.length==1?'':'s'}</span>`:''}
+      ${sm.diff.removed_devices.length?`<span>⬇️ <b>${sm.diff.removed_devices.length}</b> device${sm.diff.removed_devices.length==1?'':'s'} no longer seen</span>`:''}
+      <span>⚠️ <b>${sm.diff.new_findings.length}</b> new finding${sm.diff.new_findings.length==1?'':'s'} since the last audit</span>
+      <span>✅ <b>${sm.diff.resolved_findings.length}</b> resolved</span></div>`:''}
+    <div class="strip" aria-label="Devices ordered by risk">`+
+    hosts.map(x=>`<button class="cell c-${worst(x.counts)}" data-host="${esc(x.ip)}" aria-pressed="${st.f.host===x.ip}" title="${esc(x.ip)}${x.hostname?' ('+esc(x.hostname)+')':''}: risk ${x.risk}" aria-label="${esc(x.ip)}, risk ${x.risk}"></button>`).join('')+
+    `</div>${sevbar(sevc)}
+    <div class="legend">`+SEVS.filter(s=>s!=='info').map(s=>`<button data-sev="${s}"><span class="sw c-${s}"></span><b>${sevc[s]||0}</b><span>${SEVNAME[s]}</span></button>`).join('')+`</div></section>`;
+  h+=`<div class="cats">`+Object.entries(st.info.categories).map(([k,name])=>{
+    const sub=countBy(findings.filter(f=>f.category===k),'severity');
+    return `<button class="cat" data-cat="${k}" aria-pressed="${st.f.cat===k}"><div class="n">${catc[k]||0}</div><div class="t">${esc(name)}</div>${sevbar(sub)}</button>`}).join('')+`</div>`;
+  h+=`<div class="tabs" role="tablist">`+[['findings','Findings'],['devices','Devices'],['attack','MITRE ATT&CK'],['trends','Trends'],['history','History']]
+    .map(([k,n])=>`<button role="tab" data-tab="${k}" aria-selected="${st.tab===k}">${n}</button>`).join('')+
+    `<span class="sp"></span><button class="btn ghost" data-exp="report.pdf">Download PDF report</button><button class="btn ghost" data-exp="export.csv">Export CSV</button> <button class="btn ghost" data-exp="export.json">Export JSON</button></div><div id="tabbody"></div>`;
+  $('#results').innerHTML=h;
+  $('#results').querySelectorAll('[data-host]').forEach(b=>b.onclick=()=>{st.f.host=st.f.host===b.dataset.host?'':b.dataset.host;st.tab='findings';render()});
+  $('#results').querySelectorAll('[data-sev]').forEach(b=>b.onclick=()=>{st.f.sev=st.f.sev===b.dataset.sev?'':b.dataset.sev;st.tab='findings';render()});
+  $('#results').querySelectorAll('[data-cat]').forEach(b=>b.onclick=()=>{st.f.cat=st.f.cat===b.dataset.cat?'':b.dataset.cat;st.tab='findings';render()});
+  $('#results').querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{st.tab=b.dataset.tab;render()});
+  $('#results').querySelectorAll('[data-exp]').forEach(b=>b.onclick=()=>location.href=`/api/scans/${st.scan}/${b.dataset.exp}`);
+  ({findings:tabFindings,devices:tabDevices,attack:tabAttack,trends:tabTrends,history:tabHistory})[st.tab]();
+}
+
+function filtered(){
+  const {sev,cat,q,host}=st.f,ql=q.toLowerCase();
+  return st.findings.filter(f=>(!sev||f.severity===sev)&&(!cat||f.category===cat)&&(!host||f.ip===host)&&
+    (st.showDismissed||!f.dismissed)&&
+    (!ql||[f.title,f.ip,f.cve,f.description,f.evidence].join(' ').toLowerCase().includes(ql)));
+}
+function tabFindings(){
+  const list=filtered();
+  const hiddenCount=st.findings.filter(f=>f.dismissed).length;
+  const chips=Object.entries(st.f).filter(([k,v])=>v&&k!=='q').map(([k,v])=>`<button class="btn ghost" data-clear="${k}">${esc(k==='cat'?st.info.categories[v]:v)} &times;</button>`).join('');
+  $('#tabbody').innerHTML=`<div class="toolbar"><input type="text" id="q" placeholder="Search findings, devices, CVEs" value="${esc(st.f.q)}" aria-label="Search findings">${chips}
+  ${hiddenCount?`<label style="font-size:13px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="showdis" ${st.showDismissed?'checked':''}> Show ${hiddenCount} dismissed</label>`:''}
+  <span class="hint">${list.length} shown</span></div>`+
+  (list.length?`<div class="tablewrap"><table><thead><tr><th>Severity</th><th>Finding</th><th>Device</th><th>Category</th><th>Port</th><th class="num">Risk</th></tr></thead><tbody>`+
+   list.slice(0,500).map(f=>`<tr class="click${f.dismissed?' dismissed':''}" tabindex="0" data-id="${f.id}" style="${f.dismissed?'opacity:.55':''}"><td>${pill(f.severity)}</td>
+   <td>${esc(f.title)}${f.kev?' <span class="tag kev">Actively exploited</span>':''}${(f.cve&&f.cvss==null)?' <span class="tag">unscored by NVD</span>':(f.confidence==='low'?' <span class="tag">needs verification</span>':'')}${f.dismissed?` <span class="tag">${f.dismissed.reason==='false_positive'?'false positive':'risk accepted'}</span>`:''}</td>
+   <td class="mono">${esc(f.ip)}</td><td>${esc(st.info.categories[f.category])}</td>
+   <td class="mono">${f.port?esc(f.port+'/'+f.proto):''}</td><td class="num">${(+f.risk).toFixed(1)}</td></tr>`).join('')+
+   `</tbody></table></div>${list.length>500?'<p class="hint">Showing the first 500. Narrow the filters or export for the rest.</p>':''}`
+   :`<div class="panel empty"><b>No findings match</b>Clear a filter or change the search.</div>`);
+  $('#q').oninput=e=>{st.f.q=e.target.value;const p=e.target.selectionStart;tabFindings();const q=$('#q');q.focus();q.setSelectionRange(p,p)};
+  $('#tabbody').querySelectorAll('[data-clear]').forEach(b=>b.onclick=()=>{st.f[b.dataset.clear]='';render()});
+  const sd=$('#showdis');if(sd)sd.onchange=()=>{st.showDismissed=sd.checked;tabFindings()};
+  $('#tabbody').querySelectorAll('tr.click').forEach(r=>{r.onclick=()=>openDrawer(+r.dataset.id);r.onkeydown=e=>{if(e.key==='Enter')openDrawer(+r.dataset.id)}});
+}
+const CRIT_LABEL={critical_asset:'Critical asset',high:'High value',normal:'Normal',low:'Low value'};
+function tabDevices(){
+  $('#tabbody').innerHTML=st.hosts.length?`<div class="tablewrap" style="margin-top:14px"><table><thead><tr><th>Device</th><th>Type</th><th>Operating system</th><th>Vendor / MAC</th><th class="num">Open ports</th><th>Findings</th><th class="num">Risk</th><th>Importance</th></tr></thead><tbody>`+
+  st.hosts.map(h=>`<tr><td class="click" tabindex="0" data-ip="${esc(h.ip)}"><span class="mono">${esc(h.ip)}</span>${h.criticality!=='normal'?`<span class="crit-tag crit-${h.criticality}">${esc(CRIT_LABEL[h.criticality])}</span>`:''}${h.hostname?`<br><span class="hint">${esc(h.hostname)}</span>`:''}</td>
+  <td>${esc(h.device_type)}</td><td>${esc(h.os_name||'Unknown')}${h.os_name?`<br><span class="hint">${h.os_accuracy}% match</span>`:''}</td>
+  <td>${esc(h.vendor||'')}${h.mac?`<br><span class="hint mono">${esc(h.mac)}</span>`:''}</td><td class="num">${h.ports.length}</td>
+  <td><div class="minibars">${SEVS.filter(s=>h.counts[s]).map(s=>`<span class="c-${s}" title="${SEVNAME[s]}">${h.counts[s]}</span>`).join('')||'<span class="hint">none</span>'}</div></td>
+  <td class="num">${(+h.risk).toFixed(1)}</td>
+  <td><select data-crit="${esc(h.ip)}" aria-label="Set importance for ${esc(h.ip)}">${Object.entries(CRIT_LABEL).map(([k,v])=>`<option value="${k}" ${h.criticality===k?'selected':''}>${v}</option>`).join('')}</select></td></tr>`).join('')+`</tbody></table></div>`:`<div class="panel empty"><b>No devices found</b>Check the range, or run as administrator/root so Nmap can use ARP discovery.</div>`;
+  $('#tabbody').querySelectorAll('td.click').forEach(r=>{const go=()=>{st.f.host=r.dataset.ip;st.tab='findings';render()};r.onclick=go;r.onkeydown=e=>{if(e.key==='Enter')go()}});
+  $('#tabbody').querySelectorAll('[data-crit]').forEach(sel=>sel.onclick=e=>e.stopPropagation());
+  $('#tabbody').querySelectorAll('[data-crit]').forEach(sel=>sel.onchange=async()=>{
+    await api('/api/assets',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({ip:sel.dataset.crit,criticality:sel.value})});
+    const h=st.hosts.find(x=>x.ip===sel.dataset.crit);if(h)h.criticality=sel.value;
+  });
+}
+function tabAttack(){
+  $('#tabbody').innerHTML=`<div class="toolbar"><span class="hint">Techniques an attacker could use against the weaknesses found. CVE mappings are keyword-based unless you supply the CTID dataset (see README).</span>
+  <button class="btn ghost" id="layer">Download ATT&amp;CK Navigator layer</button></div>`+
+  (st.attack.length?`<div class="tablewrap"><table><thead><tr><th>Technique</th><th>Tactic</th><th>Worst severity</th><th class="num">Findings</th><th class="num">Devices</th></tr></thead><tbody>`+
+  st.attack.map(a=>`<tr><td><a class="mono" target="_blank" rel="noopener" style="color:var(--accent)" href="https://attack.mitre.org/techniques/${esc(a.id).replace('.','/')}/">${esc(a.id)}</a> ${esc(a.name)}</td><td>${esc(a.tactic)}</td><td>${pill(a.severity)}</td><td class="num">${a.count}</td><td class="num">${a.hosts.length}</td></tr>`).join('')+`</tbody></table></div>`:`<div class="panel empty"><b>No techniques mapped</b></div>`);
+  const l=$('#layer');if(l)l.onclick=()=>location.href=`/api/scans/${st.scan}/attack-layer.json`;
+}
+async function tabTrends(){
+  $('#tabbody').innerHTML='<p class="hint" style="margin-top:14px">Loading...</p>';
+  const rows=await api('/api/trends?limit=30');
+  if(rows.length<2){$('#tabbody').innerHTML=`<div class="panel empty" style="margin-top:14px"><b>Not enough history yet</b>Run a few more audits of this network to see a trend line.</div>`;return}
+  const W=760,H=220,PAD=34,n=rows.length;
+  const maxRisk=10,maxCount=Math.max(1,...rows.map(r=>r.critical+r.high+r.medium+r.low));
+  const x=i=>PAD+(W-2*PAD)*i/(n-1);
+  const yRisk=v=>H-PAD-(H-2*PAD)*v/maxRisk;
+  const yCount=v=>H-PAD-(H-2*PAD)*v/maxCount;
+  const line=(ys)=>rows.map((r,i)=>`${i?'L':'M'}${x(i).toFixed(1)},${ys(r).toFixed(1)}`).join(' ');
+  const dots=(ys,color)=>rows.map((r,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${ys(r).toFixed(1)}" r="3" fill="${color}"><title>${new Date(r.finished*1000).toLocaleDateString()}</title></circle>`).join('');
+  const svg=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:${W}px;height:auto" role="img" aria-label="Risk and finding trends over time">
+    <line x1="${PAD}" y1="${H-PAD}" x2="${W-PAD}" y2="${H-PAD}" stroke="var(--line)"/>
+    <path d="${line(r=>yRisk(r.avg_risk))}" fill="none" stroke="var(--accent)" stroke-width="2"/>${dots(r=>yRisk(r.avg_risk),'var(--accent)')}
+    <path d="${line(r=>yCount(r.critical+r.high))}" fill="none" stroke="var(--crit)" stroke-width="2" stroke-dasharray="4 3"/>${dots(r=>yCount(r.critical+r.high),'var(--crit)')}
+    <text x="${PAD}" y="14" font-size="11" fill="var(--muted)">Avg device risk (solid) &amp; critical+high findings (dashed)</text>
+  </svg>`;
+  $('#tabbody').innerHTML=`<div class="panel" style="margin-top:14px;padding:16px">${svg}</div>
+  <div class="tablewrap" style="margin-top:12px"><table><thead><tr><th>Date</th><th class="num">Devices</th><th class="num">Avg risk</th><th class="num">Critical</th><th class="num">High</th><th class="num">Medium</th><th class="num">Low</th></tr></thead><tbody>`+
+  rows.slice().reverse().map(r=>`<tr><td>${new Date(r.finished*1000).toLocaleString()}</td><td class="num">${r.hosts}</td><td class="num">${r.avg_risk.toFixed(1)}</td>
+  <td class="num">${r.critical}</td><td class="num">${r.high}</td><td class="num">${r.medium}</td><td class="num">${r.low}</td></tr>`).join('')+`</tbody></table></div>`;
+}
+async function tabHistory(){
+  const scans=await api('/api/scans');
+  $('#tabbody').innerHTML=`<div class="tablewrap" style="margin-top:14px"><table><thead><tr><th>#</th><th>Target</th><th>Depth</th><th>Started</th><th>Result</th><th></th></tr></thead><tbody>`+
+  scans.map(s=>`<tr><td>${s.id}</td><td class="mono">${esc(s.target)}</td><td>${esc(s.profile)}</td><td>${new Date(s.started*1000).toLocaleString()}</td>
+  <td>${s.status==='done'&&s.summary?`${s.summary.hosts} devices, ${s.summary.findings} findings`:esc(s.status)}</td>
+  <td style="white-space:nowrap">${s.status==='done'?`<button class="btn ghost" data-open="${s.id}">Open</button> `:''}${['done','error','cancelled'].includes(s.status)?`<button class="btn ghost" data-del="${s.id}">Delete</button>`:''}</td></tr>`).join('')+`</tbody></table></div>`;
+  $('#tabbody').querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>{st.tab='findings';loadScan(+b.dataset.open)});
+  $('#tabbody').querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{
+    if(!confirm('Delete this audit and its findings?'))return;
+    await api('/api/scans/'+b.dataset.del,{method:'DELETE'});
+    if(+b.dataset.del===st.scan){const l=await api('/api/scans');l.length?loadScan(l[0].id):renderEmpty()}else tabHistory()});
+}
+
+/* ---------- detail drawer ---------- */
+let lastFocus=null;
+function openDrawer(id){
+  const f=st.findings.find(x=>x.id===id);if(!f)return;
+  lastFocus=document.activeElement;
+  const d=$('#drawer');
+  d.innerHTML=`<button class="btn ghost close" id="dclose">Close</button>${pill(f.severity)}
+  ${f.kev?'<span class="tag kev" style="margin-left:6px">Actively exploited (CISA KEV)</span>':''}
+  <h2>${esc(f.title)}</h2>
+  <p class="hint">${esc(st.info.categories[f.category])}, device <span class="mono">${esc(f.ip)}</span>${f.port?`, port <span class="mono">${esc(f.port+'/'+f.proto)}</span>`:''}</p>
+  ${f.cve?`<h3>Vulnerability</h3><p><a target="_blank" rel="noopener" href="https://nvd.nist.gov/vuln/detail/${esc(f.cve)}">${esc(f.cve)}</a>
+    ${f.cvss!=null?` &middot; CVSS ${f.cvss}`:' &middot; <b>not yet scored by NVD</b> &mdash; severity shown here is an estimate'}${f.epss!=null?` &middot; EPSS ${(f.epss*100).toFixed(1)}% chance of exploitation in 30 days`:''}</p>`:''}
+  <h3>What it means</h3><p>${esc(f.description)}</p>
+  <h3>How to fix</h3><p>${esc(f.remediation)}</p>
+  ${f.evidence?`<h3>Evidence</h3><pre>${esc(f.evidence)}</pre>`:''}
+  <h3>Confidence</h3><p>${esc(f.confidence)}${f.confidence!=='high'?' (version or heuristic based; verify before acting)':''}. Risk score ${(+f.risk).toFixed(1)} of 10.</p>
+  ${f.attack.length?`<h3>MITRE ATT&amp;CK</h3><p>`+f.attack.map(t=>`<a class="tag" style="color:var(--accent)" target="_blank" rel="noopener" href="https://attack.mitre.org/techniques/${esc(t.id).replace('.','/')}/">${esc(t.id)} ${esc(t.name)}</a>`).join('')+`</p>`:''}
+  <h3>Tracking</h3>
+  ${f.dismissed?`<p>Marked as <b>${f.dismissed.reason==='false_positive'?'false positive':'accepted risk'}</b>${f.dismissed.note?': '+esc(f.dismissed.note):''}</p><button class="btn ghost" id="undismiss">Remove this marking</button>`
+    :`<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost" data-dismiss="accepted_risk">Mark as accepted risk</button><button class="btn ghost" data-dismiss="false_positive">Mark as false positive</button></div>`}`;
+  d.classList.add('open');d.setAttribute('aria-hidden','false');
+  $('#dclose').onclick=closeDrawer;$('#dclose').focus();
+  d.querySelectorAll('[data-dismiss]').forEach(b=>b.onclick=async()=>{
+    await api('/api/dismissals',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ip:f.ip,title:f.title,reason:b.dataset.dismiss})});
+    f.dismissed={reason:b.dataset.dismiss,note:null};closeDrawer();render();
+  });
+  const un=$('#undismiss');if(un)un.onclick=async()=>{
+    const match=(await api('/api/dismissals')).find(x=>x.ip===f.ip&&x.title===f.title);
+    if(match)await api('/api/dismissals/'+match.id,{method:'DELETE'});
+    f.dismissed=null;closeDrawer();render();
+  };
+}
+function closeDrawer(){const d=$('#drawer');d.classList.remove('open');d.setAttribute('aria-hidden','true');if(lastFocus)lastFocus.focus()}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDrawer()});
+
+init().catch(e=>showErr('Could not reach the NetAudit server: '+e.message));
+</script>
+</body>
+</html>

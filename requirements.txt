@@ -1,0 +1,7 @@
+fastapi>=0.110
+uvicorn>=0.29
+requests>=2.31
+paramiko>=3.4
+pywinrm>=0.4
+cryptography>=42
+reportlab>=4.0

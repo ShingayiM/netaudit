@@ -1,0 +1,5 @@
+# Optional indicators of compromise, one per line: IPs, hostnames or MAC addresses.
+# Any scanned device matching a line here is reported as a malware indicator.
+# Example:
+# 203.0.113.50
+# evil-c2.example.com
