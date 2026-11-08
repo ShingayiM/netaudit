@@ -5,6 +5,19 @@ grouped into categories and mapped to MITRE ATT&CK, CVEs, CISA KEV and EPSS.
 
 **Categories:** Patch management, End-of-life software, Exposed services (open ports), Misconfiguration, Malware indicators.
 
+## Example run
+
+A standard-depth scan of a 5-device home/lab network turned up 50 findings (31 critical, 4 high, 15 medium),
+including 4 under active exploitation per CISA's KEV catalog — most traced to out-of-date Linux-based firmware
+on IoT/embedded devices. The dashboard's Trends tab tracked the count down from 68 to 50 total across two
+consecutive scans as findings were triaged, and the MITRE ATT&CK tab surfaced Exploit Public-Facing Application
+(T1190) as the most-represented technique, consistent with most findings being unpatched exposed services
+rather than, say, credential or lateral-movement issues.
+
+Device-level details (hostnames, MAC/vendor data, specific OS versions) are intentionally not included above —
+that's exactly the kind of thing this tool surfaces, so it's also exactly the kind of thing not to publish
+about a real network.
+
 ## Setup (5 minutes)
 
 1. Install **Python 3.9+** and **Nmap** (https://nmap.org/download; on Windows also install Npcap, which the Nmap installer offers).
